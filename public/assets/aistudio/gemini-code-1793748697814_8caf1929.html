@@ -1,0 +1,1182 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional Payment & Supplier Management System</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- QRCode Generator for Mobile Pairing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- jsPDF for PDF Exports -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #printable-area, #printable-area * {
+                visibility: visible;
+            }
+            #printable-area {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                margin: 0;
+                padding: 15px;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 dark:bg-slate-900 dark:text-slate-100 min-h-screen flex flex-col transition-colors duration-300" id="bodyTheme">
+
+    <!-- Top Navigation Header -->
+    <header class="bg-white dark:bg-slate-800 shadow-md sticky top-0 z-40 border-b border-slate-200 dark:border-slate-700">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-4">
+            <div class="flex items-center space-x-3">
+                <div id="brandLogoContainer" class="w-10 h-10 rounded-lg bg-brand-600 flex items-center justify-center text-white font-bold text-xl shadow overflow-hidden">
+                    <i class="fa-solid fa-wallet"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+                        <span>Enterprise Pay & Supplier Manager</span>
+                        <span class="text-xs bg-brand-100 text-brand-700 dark:bg-brand-900 dark:text-brand-300 px-2 py-0.5 rounded-full font-semibold">PKR Edition</span>
+                    </h1>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Cheque Ageing & Exact Day Count Analytics</p>
+                </div>
+            </div>
+
+            <div class="flex items-center flex-wrap gap-2">
+                <!-- Navigation Tabs -->
+                <nav class="flex space-x-1 bg-slate-100 dark:bg-slate-700 p-1 rounded-lg">
+                    <button onclick="switchTab('payments')" id="tab-payments" class="px-3 py-1.5 text-sm font-medium rounded-md bg-white dark:bg-slate-800 text-brand-600 dark:text-brand-400 shadow-sm transition">
+                        <i class="fa-solid fa-money-bill-transfer mr-1"></i> Payments
+                    </button>
+                    <button onclick="switchTab('suppliers')" id="tab-suppliers" class="px-3 py-1.5 text-sm font-medium rounded-md text-slate-600 dark:text-slate-300 hover:text-brand-600 transition">
+                        <i class="fa-solid fa-truck-field mr-1"></i> Suppliers
+                    </button>
+                    <button onclick="switchTab('reports')" id="tab-reports" class="px-3 py-1.5 text-sm font-medium rounded-md text-slate-600 dark:text-slate-300 hover:text-brand-600 transition">
+                        <i class="fa-solid fa-chart-line mr-1"></i> Reports & Print
+                    </button>
+                    <button onclick="switchTab('settings')" id="tab-settings" class="px-3 py-1.5 text-sm font-medium rounded-md text-slate-600 dark:text-slate-300 hover:text-brand-600 transition">
+                        <i class="fa-solid fa-gear mr-1"></i> Settings & Backup
+                    </button>
+                </nav>
+
+                <!-- Quick Action Buttons -->
+                <button onclick="openBackupFolderPrompt()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium shadow transition flex items-center gap-1.5" title="Link Backup Folder">
+                    <i class="fa-solid fa-folder-open"></i> <span class="hidden sm:inline">Backup Folder</span>
+                </button>
+                <button onclick="openPairingModal()" class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium shadow transition flex items-center gap-1.5" title="Mobile & LAN View">
+                    <i class="fa-solid fa-mobile-screen-button"></i> <span class="hidden sm:inline">Remote QR View</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main App Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-6">
+
+        <!-- ==================== PAYMENTS TAB ==================== -->
+        <section id="section-payments" class="space-y-6">
+            <!-- Entry Form Card -->
+            <div class="bg-white dark:bg-slate-800 rounded-xl shadow-md border border-slate-200 dark:border-slate-700 p-5">
+                <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-100 dark:border-slate-700">
+                    <h2 class="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                        <i class="fa-solid fa-file-invoice-dollar text-brand-500"></i> <span id="paymentFormTitle">New Payment Entry</span>
+                    </h2>
+                    <span id="backupStatusBadge" class="text-xs px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200 font-medium">
+                        <i class="fa-solid fa-triangle-exclamation mr-1"></i> Backup Folder Not Linked
+                    </span>
+                </div>
+
+                <form id="paymentForm" onsubmit="handlePaymentSubmit(event)" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <input type="hidden" id="paymentId">
+                    
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Date *</label>
+                        <input type="date" id="pDate" required class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Supplier Name *</label>
+                        <select id="pSupplier" required class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                            <option value="">Select Supplier</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Products / Items *</label>
+                        <input type="text" id="pProducts" required placeholder="e.g. Sugar, Flour, Spices" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Bank Name *</label>
+                        <select id="pBank" required class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                            <option value="">Select Bank</option>
+                            <option value="Bank AL Habib">Bank AL Habib</option>
+                            <option value="Meezan Bank">Meezan Bank</option>
+                            <option value="HBL">HBL (Habib Bank Limited)</option>
+                            <option value="UBL">UBL</option>
+                            <option value="Allied Bank">Allied Bank (ABL)</option>
+                            <option value="National Bank">National Bank (NBP)</option>
+                            <option value="Cash">Cash Payment</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Amount (PKR) *</label>
+                        <input type="number" step="0.01" id="pAmount" required placeholder="0.00" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Cheque No</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="pChequeNo" placeholder="e.g. CHQ-982341" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                            <button type="button" onclick="previewChequeSlipModal()" class="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 px-3 rounded-lg text-xs font-medium transition" title="Preview Cheque Slip">
+                                <i class="fa-solid fa-receipt"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Status *</label>
+                        <select id="pStatus" required class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                            <option value="Pending">Pending</option>
+                            <option value="Cleared">Cleared</option>
+                            <option value="Cancelled">Cancelled</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Due / Clearing Date *</label>
+                        <input type="date" id="pClearingDate" required class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                    </div>
+
+                    <div class="sm:col-span-2 lg:col-span-3">
+                        <label class="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Note / Remarks</label>
+                        <input type="text" id="pNote" placeholder="Additional reference or remarks..." class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                    </div>
+
+                    <div class="sm:col-span-2 lg:col-span-1 flex items-end gap-2">
+                        <button type="submit" id="savePaymentBtn" class="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-medium py-2 px-4 rounded-lg text-sm shadow transition">
+                            <i class="fa-solid fa-save mr-1"></i> Save
+                        </button>
+                        <button type="button" onclick="resetPaymentForm()" class="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-medium py-2 px-3 rounded-lg text-sm transition">
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Filter & Table Card -->
+            <div class="bg-white dark:bg-slate-800 rounded-xl shadow-md border border-slate-200 dark:border-slate-700 p-5 space-y-4">
+                <div class="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4">
+                    <h3 class="font-semibold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                        <i class="fa-solid fa-list text-brand-500"></i> Payment Records (<span id="paymentCount">0</span>)
+                    </h3>
+                    <!-- Filter-wide Search -->
+                    <div class="flex flex-wrap items-center gap-2">
+                        <div class="relative flex-1 sm:flex-initial">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+                                <i class="fa-solid fa-search"></i>
+                            </span>
+                            <input type="text" id="globalSearch" oninput="renderPaymentsTable()" placeholder="Search anything..." class="w-full sm:w-64 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg pl-9 pr-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-brand-500">
+                        </div>
+                        <select id="filterStatus" onchange="renderPaymentsTable()" class="bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-1.5 text-sm outline-none">
+                            <option value="">All Statuses</option>
+                            <option value="Pending">Pending</option>
+                            <option value="Cleared">Cleared</option>
+                            <option value="Cancelled">Cancelled</option>
+                        </select>
+                        <select id="filterSupplier" onchange="renderPaymentsTable()" class="bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-1.5 text-sm outline-none">
+                            <option value="">All Suppliers</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Table Container -->
+                <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead class="bg-slate-50 dark:bg-slate-700 text-slate-700 dark:text-slate-200 uppercase text-xs">
+                            <tr>
+                                <th class="p-3">Date</th>
+                                <th class="p-3">Supplier</th>
+                                <th class="p-3">Products</th>
+                                <th class="p-3">Bank / Cheque</th>
+                                <th class="p-3 text-right">Amount (PKR)</th>
+                                <th class="p-3 text-center">Status</th>
+                                <th class="p-3">Due / Clearing Date</th>
+                                <th class="p-3 text-center">Day Count Analytics</th>
+                                <th class="p-3 text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="paymentsTableBody" class="divide-y divide-slate-200 dark:divide-slate-700">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== SUPPLIERS TAB ==================== -->
+        <section id="section-suppliers" class="space-y-6 hidden">
+            <div class="bg-white dark:bg-slate-800 rounded-xl shadow-md border border-slate-200 dark:border-slate-700 p-5">
+                <div class="flex justify-between items-center mb-4 pb-3 border-b border-slate-100 dark:border-slate-700">
+                    <h2 class="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                        <i class="fa-solid fa-truck-field text-brand-500"></i> <span id="supplierFormTitle">Add New Supplier</span>
+                    </h2>
+                </div>
+
+                <form id="supplierForm" onsubmit="handleSupplierSubmit(event)" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <input type="hidden" id="supplierId">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Supplier Name *</label>
+                        <input type="text" id="sName" required placeholder="Company or Individual Name" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Contact Person</label>
+                        <input type="text" id="sContactPerson" placeholder="Manager Name" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Phone / Mobile *</label>
+                        <input type="text" id="sPhone" required placeholder="0300-1234567" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">NTN / STRN</label>
+                        <input type="text" id="sTax" placeholder="Tax Number" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500">
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label class="block text-xs font-semibold uppercase text-slate-500 dark:text-slate-400 mb-1">Address</label>
+                        <input type="text" id="sAddress" placeholder="Business Address in Islamabad / Rawalpindi" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500">
+                    </div>
+                    <div class="sm:col-span-2 flex items-end gap-2">
+                        <button type="submit" id="saveSupplierBtn" class="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-medium py-2 px-4 rounded-lg text-sm shadow transition">
+                            <i class="fa-solid fa-save mr-1"></i> Save Supplier
+                        </button>
+                        <button type="button" onclick="resetSupplierForm()" class="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-medium py-2 px-3 rounded-lg text-sm transition">
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Supplier List Card -->
+            <div class="bg-white dark:bg-slate-800 rounded-xl shadow-md border border-slate-200 dark:border-slate-700 p-5 space-y-4">
+                <div class="flex justify-between items-center">
+                    <h3 class="font-semibold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                        <i class="fa-solid fa-id-badge text-brand-500"></i> Registered Suppliers (<span id="supplierCount">0</span>)
+                    </h3>
+                </div>
+                <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead class="bg-slate-50 dark:bg-slate-700 text-slate-700 dark:text-slate-200 uppercase text-xs">
+                            <tr>
+                                <th class="p-3">Supplier Name</th>
+                                <th class="p-3">Contact Person</th>
+                                <th class="p-3">Phone</th>
+                                <th class="p-3">NTN/STRN</th>
+                                <th class="p-3">Address</th>
+                                <th class="p-3 text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="suppliersTableBody" class="divide-y divide-slate-200 dark:divide-slate-700">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== REPORTS TAB ==================== -->
+        <section id="section-reports" class="space-y-6 hidden">
+            <div class="bg-white dark:bg-slate-800 rounded-xl shadow-md border border-slate-200 dark:border-slate-700 p-5 space-y-4">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-4 border-b border-slate-100 dark:border-slate-700">
+                    <div>
+                        <h2 class="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                            <i class="fa-solid fa-print text-brand-500"></i> Advanced Reports & Day Count Analytics
+                        </h2>
+                        <p class="text-xs text-slate-500">Filter data precisely for custom reports, print previews, and exports.</p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button onclick="triggerPrint('portrait')" class="bg-slate-700 hover:bg-slate-800 text-white px-3 py-2 rounded-lg text-sm font-medium shadow transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-file"></i> Portrait Print
+                        </button>
+                        <button onclick="triggerPrint('landscape')" class="bg-slate-700 hover:bg-slate-800 text-white px-3 py-2 rounded-lg text-sm font-medium shadow transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-file-lines fa-rotate-90"></i> Landscape Print
+                        </button>
+                        <button onclick="exportToPDF()" class="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-lg text-sm font-medium shadow transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-file-pdf"></i> Export PDF
+                        </button>
+                        <button onclick="exportToCSV()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-lg text-sm font-medium shadow transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-file-excel"></i> Export CSV
+                        </button>
+                        <button onclick="shareReportWhatsApp()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-3 py-2 rounded-lg text-sm font-medium shadow transition flex items-center gap-1.5">
+                            <i class="fa-brands fa-whatsapp text-lg"></i> WhatsApp
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Report Narrow Filters -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3 bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Search Keyword</label>
+                        <input type="text" id="repSearch" oninput="generateReportPreview()" placeholder="Product, Bank..." class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-2.5 py-1.5 text-sm outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Supplier</label>
+                        <select id="repSupplier" onchange="generateReportPreview()" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-2.5 py-1.5 text-sm outline-none">
+                            <option value="">All Suppliers</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Status</label>
+                        <select id="repStatus" onchange="generateReportPreview()" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-2.5 py-1.5 text-sm outline-none">
+                            <option value="">All Statuses</option>
+                            <option value="Pending">Pending</option>
+                            <option value="Cleared">Cleared</option>
+                            <option value="Cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Due / Ageing Type</label>
+                        <select id="repAgeing" onchange="generateReportPreview()" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-2.5 py-1.5 text-sm outline-none font-semibold text-brand-600">
+                            <option value="">All Due Dates</option>
+                            <option value="overdue">🚨 Overdue Cheques</option>
+                            <option value="today">⚡ Due Today</option>
+                            <option value="postdated">⏳ Post-Dated (Future)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Cheque No</label>
+                        <input type="text" id="repCheque" oninput="generateReportPreview()" placeholder="Cheque No..." class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-2.5 py-1.5 text-sm outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">From Due Date</label>
+                        <input type="date" id="repFromDate" onchange="generateReportPreview()" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-2.5 py-1.5 text-sm outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">To Due Date</label>
+                        <input type="date" id="repToDate" onchange="generateReportPreview()" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg px-2.5 py-1.5 text-sm outline-none">
+                    </div>
+                </div>
+
+                <!-- Printable Report Preview Area -->
+                <div id="printable-area" class="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-300 dark:border-slate-700 space-y-6 text-slate-800 dark:text-slate-100 shadow-sm">
+                    <div class="flex justify-between items-start border-b border-slate-200 dark:border-slate-700 pb-4">
+                        <div class="flex items-center space-x-3">
+                            <div id="reportHeaderLogo" class="w-12 h-12 rounded-lg bg-brand-600 flex items-center justify-center text-white font-bold text-xl overflow-hidden">
+                                <i class="fa-solid fa-wallet"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-xl font-bold uppercase tracking-wide" id="reportCompanyTitle">Payment & Day Count Ageing Report</h2>
+                                <p class="text-xs text-slate-500">Current Date: <span id="currentDateDisplay">2026-11-04</span> | System Enterprise Suite</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-xs font-semibold uppercase text-slate-500">Total Filtered Amount</p>
+                            <p class="text-xl font-bold text-brand-600" id="reportTotalAmount">PKR 0.00</p>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead>
+                                <tr class="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 uppercase border-b border-slate-200 dark:border-slate-700">
+                                    <th class="p-2.5">Date</th>
+                                    <th class="p-2.5">Supplier Name</th>
+                                    <th class="p-2.5">Products</th>
+                                    <th class="p-2.5">Bank / Cheque</th>
+                                    <th class="p-2.5 text-right">Amount (PKR)</th>
+                                    <th class="p-2.5 text-center">Status</th>
+                                    <th class="p-2.5">Due / Clearing Date</th>
+                                    <th class="p-2.5 text-center">Day Count Analytics</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reportTableBody" class="divide-y divide-slate-200 dark:divide-slate-800">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="flex justify-between items-center pt-6 border-t border-slate-200 dark:border-slate-700 text-xs text-slate-500">
+                        <p>Authorized Signature: ______________________</p>
+                        <p>Page 1 of 1 - Confidential Business Report</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== SETTINGS & BACKUP TAB ==================== -->
+        <section id="section-settings" class="space-y-6 hidden">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Startup Preview Mode Card -->
+                <div class="bg-white dark:bg-slate-800 rounded-xl shadow-md border border-slate-200 dark:border-slate-700 p-5 space-y-4">
+                    <h3 class="font-semibold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                        <i class="fa-solid fa-eye text-brand-500"></i> Startup Preference
+                    </h3>
+                    <p class="text-xs text-slate-500">Configure whether the software opens directly into Report Preview mode on launch.</p>
+                    <div class="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
+                        <span class="text-sm font-medium">Always Open in Preview Mode</span>
+                        <input type="checkbox" id="settingAlwaysPreview" onchange="toggleAlwaysPreview(this)" class="w-5 h-5 accent-brand-600 rounded cursor-pointer">
+                    </div>
+                </div>
+
+                <!-- Theme Selection Card -->
+                <div class="bg-white dark:bg-slate-800 rounded-xl shadow-md border border-slate-200 dark:border-slate-700 p-5 space-y-4">
+                    <h3 class="font-semibold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                        <i class="fa-solid fa-palette text-brand-500"></i> Professional Theme Switcher
+                    </h3>
+                    <p class="text-xs text-slate-500">Choose from 4 professional color themes for your workspace.</p>
+                    <div class="grid grid-cols-2 gap-3 pt-2">
+                        <button onclick="setTheme('light')" class="p-3 rounded-lg border-2 border-slate-300 dark:border-slate-600 hover:border-brand-500 flex items-center justify-center gap-2 font-medium text-sm transition">
+                            <i class="fa-solid fa-sun text-amber-500"></i> Modern Light
+                        </button>
+                        <button onclick="setTheme('dark')" class="p-3 rounded-lg border-2 border-slate-300 dark:border-slate-600 hover:border-brand-500 flex items-center justify-center gap-2 font-medium text-sm transition">
+                            <i class="fa-solid fa-moon text-indigo-400"></i> Slate Dark
+                        </button>
+                        <button onclick="setTheme('emerald')" class="p-3 rounded-lg border-2 border-slate-300 dark:border-slate-600 hover:border-emerald-500 flex items-center justify-center gap-2 font-medium text-sm transition">
+                            <i class="fa-solid fa-leaf text-emerald-500"></i> Emerald Executive
+                        </button>
+                        <button onclick="setTheme('corporate')" class="p-3 rounded-lg border-2 border-slate-300 dark:border-slate-600 hover:border-blue-500 flex items-center justify-center gap-2 font-medium text-sm transition">
+                            <i class="fa-solid fa-building text-blue-600"></i> Corporate Blue
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Company Logo & Details Card -->
+                <div class="bg-white dark:bg-slate-800 rounded-xl shadow-md border border-slate-200 dark:border-slate-700 p-5 space-y-4">
+                    <h3 class="font-semibold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                        <i class="fa-solid fa-image text-brand-500"></i> Company Logo & Branding
+                    </h3>
+                    <p class="text-xs text-slate-500">Upload your business logo for reports and cheque slips.</p>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Upload Logo Image</label>
+                            <input type="file" id="logoUploadInput" accept="image/*" onchange="handleLogoUpload(event)" class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100 dark:file:bg-slate-700 dark:file:text-slate-200">
+                        </div>
+                        <div class="flex items-center gap-4 pt-2">
+                            <div id="logoPreviewBox" class="w-16 h-16 rounded-lg border border-slate-300 dark:border-slate-600 flex items-center justify-center bg-slate-50 dark:bg-slate-900 overflow-hidden">
+                                <i class="fa-solid fa-image text-2xl text-slate-400"></i>
+                            </div>
+                            <button onclick="removeCompanyLogo()" class="text-xs text-red-600 hover:underline font-medium">Remove Custom Logo</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Backup Folder Sync Card -->
+                <div class="bg-white dark:bg-slate-800 rounded-xl shadow-md border border-slate-200 dark:border-slate-700 p-5 space-y-4">
+                    <h3 class="font-semibold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                        <i class="fa-solid fa-hard-drive text-brand-500"></i> Local Backup Folder Sync
+                    </h3>
+                    <p class="text-xs text-slate-500">Automatically syncs JSON database backups on entry, update, and window close.</p>
+                    <div class="space-y-3">
+                        <div class="p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 text-xs">
+                            <span class="font-semibold">Current Status:</span> <span id="backupFolderDisplay" class="text-amber-600 font-medium">Not Linked</span>
+                        </div>
+                        <button onclick="openBackupFolderPrompt()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 px-4 rounded-lg text-sm shadow transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-folder-tree"></i> Select / Change Backup Directory
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Danger Zone / Clear Data Card -->
+                <div class="bg-white dark:bg-slate-800 rounded-xl shadow-md border border-red-200 dark:border-red-900 p-5 space-y-4">
+                    <h3 class="font-semibold text-base text-red-600 dark:text-red-400 flex items-center gap-2">
+                        <i class="fa-solid fa-triangle-exclamation"></i> Danger Zone (Clear Data)
+                    </h3>
+                    <p class="text-xs text-slate-500">Clear all payment records and suppliers. Requires security password <code class="bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded font-mono font-bold text-red-500">1234</code>.</p>
+                    <div>
+                        <button onclick="promptClearData()" class="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg text-sm shadow transition flex items-center gap-2">
+                            <i class="fa-solid fa-trash-can"></i> Clear All Data
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ==================== CHEQUE SLIP PREVIEW MODAL ==================== -->
+    <div id="chequeModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-lg w-full p-6 space-y-4 border border-slate-200 dark:border-slate-700">
+            <div class="flex justify-between items-center pb-3 border-b border-slate-100 dark:border-slate-700">
+                <h3 class="font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
+                    <i class="fa-solid fa-money-check text-brand-500"></i> Bank Cheque Slip Preview
+                </h3>
+                <button onclick="closeChequeModal()" class="text-slate-400 hover:text-slate-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div id="chequeSlipContent" class="bg-amber-50/50 dark:bg-slate-900 p-6 rounded-xl border-2 border-dashed border-amber-300 dark:border-slate-600 space-y-4 font-mono text-sm">
+                <!-- Rendered dynamically -->
+            </div>
+            <div class="flex justify-end gap-2 pt-2">
+                <button onclick="window.print()" class="bg-slate-700 hover:bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+                    <i class="fa-solid fa-print mr-1"></i> Print Slip
+                </button>
+                <button onclick="closeChequeModal()" class="bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 px-4 py-2 rounded-lg text-sm font-medium transition">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== REMOTE / LAN PAIRING MODAL ==================== -->
+    <div id="pairingModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4 border border-slate-200 dark:border-slate-700 text-center">
+            <div class="flex justify-between items-center pb-3 border-b border-slate-100 dark:border-slate-700">
+                <h3 class="font-bold text-lg text-slate-900 dark:text-white">Mobile & LAN Remote View</h3>
+                <button onclick="closePairingModal()" class="text-slate-400 hover:text-slate-600 text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <p class="text-xs text-slate-500">Scan this QR code with your mobile phone connected to the same Wi-Fi / LAN network to view live payment reports.</p>
+            <div id="qrcodeContainer" class="flex justify-center p-4 bg-white rounded-xl shadow-inner inline-block"></div>
+            <div class="p-3 bg-slate-100 dark:bg-slate-900 rounded-lg text-xs font-mono break-all" id="lanUrlDisplay">
+                http://localhost:8080
+            </div>
+            <button onclick="closePairingModal()" class="w-full bg-brand-600 hover:bg-brand-700 text-white py-2 rounded-lg text-sm font-medium">Done</button>
+        </div>
+    </div>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // System Current Date Reference (November 4, 2026)
+        const SYSTEM_TODAY = '2026-11-04';
+
+        // App State
+        let db = {
+            suppliers: [
+                { id: 'sup_1', name: 'Al-Madina Traders', contactPerson: 'Muhammad Tariq', phone: '0300-5123456', tax: 'STRN-12345', address: 'G-15 Markaz, Islamabad' },
+                { id: 'sup_2', name: 'Delight Cuisine Spices', contactPerson: 'Mubbasher Hussain', phone: '0331-5192973', tax: 'NTN-98765', address: 'Faisal Town, Islamabad' },
+                { id: 'sup_3', name: 'Punjab Flour & Sugar Mills', contactPerson: 'Rashid Ahmed', phone: '0309-5440125', tax: 'STRN-55443', address: 'Tarnol Industrial Zone' }
+            ],
+            payments: [
+                { id: 'pay_1', date: '2026-10-15', supplier: 'Al-Madina Traders', products: 'Basmati Rice 50kg', bank: 'Bank AL Habib', amount: 45000, chequeNo: 'CHQ-44812', status: 'Pending', clearingDate: '2026-10-25', note: 'Overdue stock clearance' },
+                { id: 'pay_2', date: '2026-11-01', supplier: 'Delight Cuisine Spices', products: 'Peri Peri Masala & Fries Masala', bank: 'Meezan Bank', amount: 18500, chequeNo: 'CHQ-44813', status: 'Pending', clearingDate: '2026-11-04', note: 'Due today' },
+                { id: 'pay_3', date: '2026-11-02', supplier: 'Punjab Flour & Sugar Mills', products: 'Fine Wheat Flour', bank: 'HBL', amount: 92000, chequeNo: 'CHQ-44814', status: 'Pending', clearingDate: '2026-11-20', note: 'Post-dated bulk supply' }
+            ],
+            settings: {
+                theme: 'light',
+                companyName: 'Enterprise Payment Manager',
+                logoDataUrl: '',
+                alwaysPreview: false
+            }
+        };
+
+        let backupDirectoryHandle = null;
+
+        // Initialization
+        window.addEventListener('DOMContentLoaded', () => {
+            loadFromLocalStorage();
+            applyTheme(db.settings.theme);
+            if(db.settings.logoDataUrl) applyLogoToUI(db.settings.logoDataUrl);
+            
+            document.getElementById('settingAlwaysPreview').checked = db.settings.alwaysPreview;
+            document.getElementById('currentDateDisplay').innerText = SYSTEM_TODAY;
+
+            populateSupplierDropdowns();
+            renderSuppliersTable();
+            renderPaymentsTable();
+            generateReportPreview();
+
+            if(db.settings.alwaysPreview) {
+                switchTab('reports');
+            }
+        });
+
+        // Tab Navigation
+        function switchTab(tabKey) {
+            ['payments', 'suppliers', 'reports', 'settings'].forEach(t => {
+                document.getElementById(`section-${t}`).classList.add('hidden');
+                document.getElementById(`tab-${t}`).className = 'px-3 py-1.5 text-sm font-medium rounded-md text-slate-600 dark:text-slate-300 hover:text-brand-600 transition';
+            });
+            document.getElementById(`section-${tabKey}`).classList.remove('hidden');
+            document.getElementById(`tab-${tabKey}`).className = 'px-3 py-1.5 text-sm font-medium rounded-md bg-white dark:bg-slate-800 text-brand-600 dark:text-brand-400 shadow-sm transition';
+            
+            if(tabKey === 'reports') generateReportPreview();
+        }
+
+        // Local Storage & Auto Backup
+        function saveToLocalStorage() {
+            localStorage.setItem('enterprise_payment_db', JSON.stringify(db));
+            triggerAutoBackup();
+        }
+
+        function loadFromLocalStorage() {
+            const saved = localStorage.getItem('enterprise_payment_db');
+            if(saved) {
+                try {
+                    db = JSON.parse(saved);
+                } catch(e) { console.error(e); }
+            }
+        }
+
+        async function openBackupFolderPrompt() {
+            if (!('showDirectoryPicker' in window)) {
+                alert('File System Access API is not supported in this browser. Please use Chrome or Edge.');
+                return;
+            }
+            try {
+                backupDirectoryHandle = await window.showDirectoryPicker();
+                document.getElementById('backupFolderDisplay').innerText = `Linked: ${backupDirectoryHandle.name}`;
+                document.getElementById('backupFolderDisplay').className = 'text-emerald-600 font-medium';
+                document.getElementById('backupStatusBadge').innerHTML = `<i class="fa-solid fa-shield-check mr-1"></i> Backup Active (${backupDirectoryHandle.name})`;
+                document.getElementById('backupStatusBadge').className = 'text-xs px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200 font-medium';
+                await triggerAutoBackup();
+                alert('Backup folder successfully linked! Data will now automatically update in this folder.');
+            } catch(err) {
+                console.error(err);
+            }
+        }
+
+        async function triggerAutoBackup() {
+            if(!backupDirectoryHandle) return;
+            try {
+                const fileHandle = await backupDirectoryHandle.getFileHandle('payment_backup.json', { create: true });
+                const writable = await fileHandle.createWritable();
+                await writable.write(JSON.stringify(db, null, 2));
+                await writable.close();
+            } catch(err) {
+                console.error('Auto backup failed:', err);
+            }
+        }
+
+        window.addEventListener('beforeunload', () => {
+            if(backupDirectoryHandle) {
+                triggerAutoBackup();
+            }
+        });
+
+        // Supplier CRUD
+        function handleSupplierSubmit(e) {
+            e.preventDefault();
+            const id = document.getElementById('supplierId').value;
+            const supplierData = {
+                id: id || 'sup_' + Date.now(),
+                name: document.getElementById('sName').value,
+                contactPerson: document.getElementById('sContactPerson').value,
+                phone: document.getElementById('sPhone').value,
+                tax: document.getElementById('sTax').value,
+                address: document.getElementById('sAddress').value
+            };
+
+            if(id) {
+                const idx = db.suppliers.findIndex(s => s.id === id);
+                if(idx !== -1) db.suppliers[idx] = supplierData;
+            } else {
+                db.suppliers.push(supplierData);
+            }
+
+            saveToLocalStorage();
+            resetSupplierForm();
+            populateSupplierDropdowns();
+            renderSuppliersTable();
+            renderPaymentsTable();
+        }
+
+        function editSupplier(id) {
+            const s = db.suppliers.find(x => x.id === id);
+            if(!s) return;
+            document.getElementById('supplierId').value = s.id;
+            document.getElementById('sName').value = s.name;
+            document.getElementById('sContactPerson').value = s.contactPerson;
+            document.getElementById('sPhone').value = s.phone;
+            document.getElementById('sTax').value = s.tax;
+            document.getElementById('sAddress').value = s.address;
+            document.getElementById('supplierFormTitle').innerText = 'Edit Supplier';
+            document.getElementById('saveSupplierBtn').innerHTML = '<i class="fa-solid fa-sync mr-1"></i> Update Supplier';
+            switchTab('suppliers');
+        }
+
+        function deleteSupplier(id) {
+            if(confirm('Are you sure you want to delete this supplier?')) {
+                db.suppliers = db.suppliers.filter(s => s.id !== id);
+                saveToLocalStorage();
+                populateSupplierDropdowns();
+                renderSuppliersTable();
+                renderPaymentsTable();
+            }
+        }
+
+        function resetSupplierForm() {
+            document.getElementById('supplierForm').reset();
+            document.getElementById('supplierId').value = '';
+            document.getElementById('supplierFormTitle').innerText = 'Add New Supplier';
+            document.getElementById('saveSupplierBtn').innerHTML = '<i class="fa-solid fa-save mr-1"></i> Save Supplier';
+        }
+
+        function renderSuppliersTable() {
+            const tbody = document.getElementById('suppliersTableBody');
+            tbody.innerHTML = '';
+            document.getElementById('supplierCount').innerText = db.suppliers.length;
+
+            if(db.suppliers.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-400">No suppliers registered yet.</td></tr>`;
+                return;
+            }
+
+            db.suppliers.forEach(s => {
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition">
+                        <td class="p-3 font-semibold">${s.name}</td>
+                        <td class="p-3">${s.contactPerson || '-'}</td>
+                        <td class="p-3">${s.phone}</td>
+                        <td class="p-3 font-mono text-xs">${s.tax || '-'}</td>
+                        <td class="p-3">${s.address || '-'}</td>
+                        <td class="p-3 text-center space-x-2">
+                            <button onclick="editSupplier('${s.id}')" class="text-blue-600 hover:text-blue-800" title="Edit"><i class="fa-solid fa-pen-to-square"></i></button>
+                            <button onclick="deleteSupplier('${s.id}')" class="text-red-600 hover:text-red-800" title="Delete"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function populateSupplierDropdowns() {
+            const selects = ['pSupplier', 'filterSupplier', 'repSupplier'];
+            selects.forEach(selId => {
+                const el = document.getElementById(selId);
+                if(!el) return;
+                const currentVal = el.value;
+                el.innerHTML = selId === 'pSupplier' ? '<option value="">Select Supplier</option>' : '<option value="">All Suppliers</option>';
+                db.suppliers.forEach(s => {
+                    el.innerHTML += `<option value="${s.name}">${s.name}</option>`;
+                });
+                el.value = currentVal;
+            });
+        }
+
+        // Payment CRUD
+        function handlePaymentSubmit(e) {
+            e.preventDefault();
+            const id = document.getElementById('paymentId').value;
+            const paymentData = {
+                id: id || 'pay_' + Date.now(),
+                date: document.getElementById('pDate').value,
+                supplier: document.getElementById('pSupplier').value,
+                products: document.getElementById('pProducts').value,
+                bank: document.getElementById('pBank').value,
+                amount: parseFloat(document.getElementById('pAmount').value) || 0,
+                chequeNo: document.getElementById('pChequeNo').value,
+                status: document.getElementById('pStatus').value,
+                clearingDate: document.getElementById('pClearingDate').value,
+                note: document.getElementById('pNote').value
+            };
+
+            if(id) {
+                const idx = db.payments.findIndex(p => p.id === id);
+                if(idx !== -1) db.payments[idx] = paymentData;
+            } else {
+                db.payments.unshift(paymentData);
+            }
+
+            saveToLocalStorage();
+            resetPaymentForm();
+            renderPaymentsTable();
+            generateReportPreview();
+        }
+
+        function editPayment(id) {
+            const p = db.payments.find(x => x.id === id);
+            if(!p) return;
+            document.getElementById('paymentId').value = p.id;
+            document.getElementById('pDate').value = p.date;
+            document.getElementById('pSupplier').value = p.supplier;
+            document.getElementById('pProducts').value = p.products;
+            document.getElementById('pBank').value = p.bank;
+            document.getElementById('pAmount').value = p.amount;
+            document.getElementById('pChequeNo').value = p.chequeNo;
+            document.getElementById('pStatus').value = p.status;
+            document.getElementById('pClearingDate').value = p.clearingDate;
+            document.getElementById('pNote').value = p.note;
+            document.getElementById('paymentFormTitle').innerText = 'Edit Payment Entry';
+            document.getElementById('savePaymentBtn').innerHTML = '<i class="fa-solid fa-sync mr-1"></i> Update Payment';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function deletePayment(id) {
+            if(confirm('Are you sure you want to delete this payment record?')) {
+                db.payments = db.payments.filter(p => p.id !== id);
+                saveToLocalStorage();
+                renderPaymentsTable();
+                generateReportPreview();
+            }
+        }
+
+        function resetPaymentForm() {
+            document.getElementById('paymentForm').reset();
+            document.getElementById('paymentId').value = '';
+            document.getElementById('pDate').valueAsDate = new Date();
+            document.getElementById('pClearingDate').valueAsDate = new Date();
+            document.getElementById('paymentFormTitle').innerText = 'New Payment Entry';
+            document.getElementById('savePaymentBtn').innerHTML = '<i class="fa-solid fa-save mr-1"></i> Save';
+        }
+
+        // Exact Day Count Ageing Calculator
+        function getChequeAgeingStatus(dueDt, status) {
+            if(status === 'Cleared' || status === 'Cancelled') {
+                return { label: `${status}`, badgeClass: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300', type: 'closed', daysCount: 0 };
+            }
+            if(!dueDt) return { label: 'No Due Date', badgeClass: 'bg-slate-100 text-slate-600', type: 'none', daysCount: 0 };
+
+            const todayTime = new Date(SYSTEM_TODAY).getTime();
+            const dueTime = new Date(dueDt).getTime();
+            const diffDays = Math.round((dueTime - todayTime) / (1000 * 60 * 60 * 24));
+
+            if(diffDays < 0) {
+                const absDays = Math.abs(diffDays);
+                return { 
+                    label: `🚨 Overdue by ${absDays} day${absDays === 1 ? '' : 's'}`, 
+                    badgeClass: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 font-bold', 
+                    type: 'overdue',
+                    daysCount: diffDays
+                };
+            } else if(diffDays === 0) {
+                return { 
+                    label: `⚡ Due Today`, 
+                    badgeClass: 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200 font-bold', 
+                    type: 'today',
+                    daysCount: 0
+                };
+            } else {
+                return { 
+                    label: `⏳ Due in ${diffDays} day${diffDays === 1 ? '' : 's'}`, 
+                    badgeClass: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 font-semibold', 
+                    type: 'postdated',
+                    daysCount: diffDays
+                };
+            }
+        }
+
+        function renderPaymentsTable() {
+            const tbody = document.getElementById('paymentsTableBody');
+            const search = document.getElementById('globalSearch').value.toLowerCase();
+            const statusFilter = document.getElementById('filterStatus').value;
+            const supplierFilter = document.getElementById('filterSupplier').value;
+
+            tbody.innerHTML = '';
+
+            const filtered = db.payments.filter(p => {
+                const matchesSearch = !search || 
+                    p.supplier.toLowerCase().includes(search) || 
+                    p.products.toLowerCase().includes(search) || 
+                    p.bank.toLowerCase().includes(search) || 
+                    (p.chequeNo && p.chequeNo.toLowerCase().includes(search)) ||
+                    p.status.toLowerCase().includes(search);
+                const matchesStatus = !statusFilter || p.status === statusFilter;
+                const matchesSupplier = !supplierFilter || p.supplier === supplierFilter;
+                return matchesSearch && matchesStatus && matchesSupplier;
+            });
+
+            document.getElementById('paymentCount').innerText = filtered.length;
+
+            if(filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="9" class="p-4 text-center text-slate-400">No payment records found.</td></tr>`;
+                return;
+            }
+
+            filtered.forEach(p => {
+                let statusBadge = '';
+                if(p.status === 'Cleared') statusBadge = '<span class="bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200 px-2.5 py-1 rounded-full text-xs font-semibold">Cleared</span>';
+                else if(p.status === 'Pending') statusBadge = '<span class="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200 px-2.5 py-1 rounded-full text-xs font-semibold">Pending</span>';
+                else statusBadge = '<span class="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 px-2.5 py-1 rounded-full text-xs font-semibold">Cancelled</span>';
+
+                const ageing = getChequeAgeingStatus(p.clearingDate, p.status);
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition">
+                        <td class="p-3">${p.date}</td>
+                        <td class="p-3 font-semibold">${p.supplier}</td>
+                        <td class="p-3">${p.products}</td>
+                        <td class="p-3">${p.bank} <br><span class="text-xs font-mono text-slate-400">${p.chequeNo || ''}</span></td>
+                        <td class="p-3 text-right font-bold text-brand-600 dark:text-brand-400">PKR ${p.amount.toLocaleString()}</td>
+                        <td class="p-3 text-center">${statusBadge}</td>
+                        <td class="p-3 font-medium">${p.clearingDate || '-'}</td>
+                        <td class="p-3 text-center"><span class="px-2 py-1 rounded text-xs ${ageing.badgeClass}">${ageing.label}</span></td>
+                        <td class="p-3 text-center space-x-2">
+                            <button onclick="editPayment('${p.id}')" class="text-blue-600 hover:text-blue-800" title="Edit"><i class="fa-solid fa-pen-to-square"></i></button>
+                            <button onclick="deletePayment('${p.id}')" class="text-red-600 hover:text-red-800" title="Delete"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        // Cheque Slip Preview
+        function previewChequeSlipModal() {
+            const bank = document.getElementById('pBank').value || 'Bank AL Habib';
+            const amount = document.getElementById('pAmount').value || '0.00';
+            const supplier = document.getElementById('pSupplier').value || 'Supplier Name';
+            const date = document.getElementById('pDate').value || SYSTEM_TODAY;
+            const chequeNo = document.getElementById('pChequeNo').value || 'CHQ-000000';
+
+            document.getElementById('chequeSlipContent').innerHTML = `
+                <div class="flex justify-between border-b pb-2">
+                    <span class="font-bold text-base">${bank}</span>
+                    <span class="font-mono text-brand-600">${chequeNo}</span>
+                </div>
+                <div class="flex justify-between pt-2">
+                    <span>Date: <strong>${date}</strong></span>
+                    <span>PKR: <strong class="text-lg">${parseFloat(amount).toLocaleString()}</strong></span>
+                </div>
+                <div class="pt-2">
+                    <p class="text-xs text-slate-500 uppercase">Pay to the order of:</p>
+                    <p class="text-base font-bold underline">${supplier}</p>
+                </div>
+                <div class="pt-4 flex justify-between items-end border-t border-dashed">
+                    <span class="text-xs">Authorized Signatory</span>
+                    <span class="font-mono text-xs">|||' 982341' 01234567: 0033'</span>
+                </div>
+            `;
+            document.getElementById('chequeModal').classList.remove('hidden');
+        }
+
+        function closeChequeModal() {
+            document.getElementById('chequeModal').classList.add('hidden');
+        }
+
+        // Get Filtered Data Helper for Reports & Exports
+        function getFilteredReportData() {
+            const search = document.getElementById('repSearch').value.toLowerCase();
+            const supplier = document.getElementById('repSupplier').value;
+            const status = document.getElementById('repStatus').value;
+            const ageingType = document.getElementById('repAgeing').value;
+            const cheque = document.getElementById('repCheque').value.toLowerCase();
+            const fromDate = document.getElementById('repFromDate').value;
+            const toDate = document.getElementById('repToDate').value;
+
+            return db.payments.filter(p => {
+                const matchSearch = !search || p.supplier.toLowerCase().includes(search) || p.products.toLowerCase().includes(search) || p.bank.toLowerCase().includes(search);
+                const matchSupplier = !supplier || p.supplier === supplier;
+                const matchStatus = !status || p.status === status;
+                const matchCheque = !cheque || (p.chequeNo && p.chequeNo.toLowerCase().includes(cheque));
+                const matchFrom = !fromDate || p.clearingDate >= fromDate;
+                const matchTo = !toDate || p.clearingDate <= toDate;
+
+                let matchAgeing = true;
+                if(ageingType) {
+                    const ageing = getChequeAgeingStatus(p.clearingDate, p.status);
+                    matchAgeing = ageing.type === ageingType;
+                }
+
+                return matchSearch && matchSupplier && matchStatus && matchAgeing && matchCheque && matchFrom && matchTo;
+            });
+        }
+
+        // Reports & Print Preview
+        function generateReportPreview() {
+            const tbody = document.getElementById('reportTableBody');
+            tbody.innerHTML = '';
+
+            const filtered = getFilteredReportData();
+            let totalAmt = 0;
+
+            filtered.forEach(p => {
+                totalAmt += p.amount;
+                const ageing = getChequeAgeingStatus(p.clearingDate, p.status);
+                tbody.innerHTML += `
+                    <tr class="border-b border-slate-100 dark:border-slate-800">
+                        <td class="p-2.5">${p.date}</td>
+                        <td class="p-2.5 font-semibold">${p.supplier}</td>
+                        <td class="p-2.5">${p.products}</td>
+                        <td class="p-2.5">${p.bank} <br><span class="font-mono text-slate-400">${p.chequeNo || ''}</span></td>
+                        <td class="p-2.5 text-right font-bold">PKR ${p.amount.toLocaleString()}</td>
+                        <td class="p-2.5 text-center">${p.status}</td>
+                        <td class="p-2.5">${p.clearingDate || '-'}</td>
+                        <td class="p-2.5 text-center"><span class="px-2 py-0.5 rounded text-[10px] ${ageing.badgeClass}">${ageing.label}</span></td>
+                    </tr>
+                `;
+            });
+
+            document.getElementById('reportTotalAmount').innerText = `PKR ${totalAmt.toLocaleString()}`;
+            document.getElementById('reportCompanyTitle').innerText = db.settings.companyName;
+        }
+
+        function triggerPrint(orientation) {
+            const style = document.createElement('style');
+            style.innerHTML = `@media print { @page { size: ${orientation}; } }`;
+            document.head.appendChild(style);
+            window.print();
+            setTimeout(() => style.remove(), 1000);
+        }
+
+        // PDF Export using jsPDF
+        function exportToPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('landscape');
+            const filtered = getFilteredReportData();
+
+            doc.setFontSize(16);
+            doc.text(db.settings.companyName, 14, 20);
+            doc.setFontSize(10);
+            doc.text(`Cheque Ageing Day Count Report (As of: ${SYSTEM_TODAY})`, 14, 26);
+
+            const tableData = filtered.map(p => {
+                const ageing = getChequeAgeingStatus(p.clearingDate, p.status);
+                return [
+                    p.date,
+                    p.supplier,
+                    p.products,
+                    `${p.bank} (${p.chequeNo || ''})`,
+                    `PKR ${p.amount.toLocaleString()}`,
+                    p.status,
+                    p.clearingDate || '-',
+                    ageing.label
+                ];
+            });
+
+            doc.autoTable({
+                startY: 32,
+                head: [['Date', 'Supplier Name', 'Products', 'Bank / Cheque', 'Amount (PKR)', 'Status', 'Due Date', 'Day Count Analytics']],
+                body: tableData,
+                theme: 'grid',
+                headStyles: { fillColor: [37, 99, 235] }
+            });
+
+            doc.save(`Day_Count_Ageing_Report_${SYSTEM_TODAY}.pdf`);
+        }
+
+        // CSV Export
+        function exportToCSV() {
+            const filtered = getFilteredReportData();
+            let csv = 'Date,Supplier Name,Products,Bank,Cheque No,Amount (PKR),Status,Due Date,Day Count Analytics,Note\n';
+            
+            filtered.forEach(p => {
+                const ageing = getChequeAgeingStatus(p.clearingDate, p.status);
+                csv += `"${p.date}","${p.supplier}","${p.products}","${p.bank}","${p.chequeNo || ''}",${p.amount},"${p.status}","${p.clearingDate || ''}","${ageing.label}","${p.note || ''}"\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('href', url);
+            a.setAttribute('download', `Day_Count_Ageing_Report_${SYSTEM_TODAY}.csv`);
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        function shareReportWhatsApp() {
+            const total = document.getElementById('reportTotalAmount').innerText;
+            const text = encodeURIComponent(`*Day Count Ageing & Financial Report*\nCompany: ${db.settings.companyName}\nAs of: ${SYSTEM_TODAY}\nTotal Amount: ${total}\nGenerated via Professional Payment Software.`);
+            window.open(`https://wa.me/?text=${text}`, '_blank');
+        }
+
+        // Settings & Themes
+        function toggleAlwaysPreview(checkbox) {
+            db.settings.alwaysPreview = checkbox.checked;
+            saveToLocalStorage();
+        }
+
+        function setTheme(theme) {
+            db.settings.theme = theme;
+            saveToLocalStorage();
+            applyTheme(theme);
+        }
+
+        function applyTheme(theme) {
+            const body = document.getElementById('bodyTheme');
+            body.className = 'min-h-screen flex flex-col transition-colors duration-300 ';
+            if(theme === 'dark') {
+                body.classList.add('dark', 'bg-slate-900', 'text-slate-100');
+            } else if(theme === 'emerald') {
+                body.classList.add('bg-emerald-50/30', 'text-slate-900', 'emerald-theme');
+            } else if(theme === 'corporate') {
+                body.classList.add('bg-blue-50/30', 'text-slate-900', 'corporate-theme');
+            } else {
+                body.classList.add('light', 'bg-slate-100', 'text-slate-800');
+            }
+        }
+
+        function handleLogoUpload(e) {
+            const file = e.target.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                db.settings.logoDataUrl = event.target.result;
+                saveToLocalStorage();
+                applyLogoToUI(db.settings.logoDataUrl);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function applyLogoToUI(dataUrl) {
+            document.getElementById('brandLogoContainer').innerHTML = `<img src="${dataUrl}" class="w-full h-full object-cover">`;
+            document.getElementById('reportHeaderLogo').innerHTML = `<img src="${dataUrl}" class="w-full h-full object-cover">`;
+            document.getElementById('logoPreviewBox').innerHTML = `<img src="${dataUrl}" class="w-full h-full object-cover">`;
+        }
+
+        function removeCompanyLogo() {
+            db.settings.logoDataUrl = '';
+            saveToLocalStorage();
+            document.getElementById('brandLogoContainer').innerHTML = `<i class="fa-solid fa-wallet"></i>`;
+            document.getElementById('reportHeaderLogo').innerHTML = `<i class="fa-solid fa-wallet"></i>`;
+            document.getElementById('logoPreviewBox').innerHTML = `<i class="fa-solid fa-image text-2xl text-slate-400"></i>`;
+        }
+
+        // Clear Data with Password 1234
+        function promptClearData() {
+            const pass = prompt('Enter security password (1234) to clear all data:');
+            if(pass === '1234') {
+                if(confirm('WARNING: All suppliers and payments will be permanently deleted. Proceed?')) {
+                    db.suppliers = [];
+                    db.payments = [];
+                    saveToLocalStorage();
+                    populateSupplierDropdowns();
+                    renderSuppliersTable();
+                    renderPaymentsTable();
+                    generateReportPreview();
+                    alert('All data has been cleared successfully.');
+                }
+            } else if(pass !== null) {
+                alert('Incorrect password.');
+            }
+        }
+
+        // Mobile Pairing Modal
+        function openPairingModal() {
+            document.getElementById('pairingModal').classList.remove('hidden');
+            const url = window.location.href;
+            document.getElementById('lanUrlDisplay').innerText = url;
+            const qrContainer = document.getElementById('qrcodeContainer');
+            qrContainer.innerHTML = '';
+            new QRCode(qrContainer, {
+                text: url,
+                width: 160,
+                height: 160
+            });
+        }
+
+        function closePairingModal() {
+            document.getElementById('pairingModal').classList.add('hidden');
+        }
+
+        // Set default dates on payment form
+        document.getElementById('pDate').valueAsDate = new Date();
+        document.getElementById('pClearingDate').valueAsDate = new Date();
+    </script>
+</body>
+</html>
